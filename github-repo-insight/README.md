@@ -16,7 +16,7 @@
 
 ## 截图
 
-![脚本示意截图](https://github.com/user-attachments/assets/e2c487ad-8f6b-4571-bec9-57fdc5dc324a)
+<img src="https://github.com/user-attachments/assets/e2c487ad-8f6b-4571-bec9-57fdc5dc324a" alt="脚本示意截图" width="50%" />
 
 ## 权限说明
 
