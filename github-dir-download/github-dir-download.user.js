@@ -165,11 +165,59 @@
         return Promise.all(results);
     }
 
+    function setButtonLoading(btn, loading) {
+        if (loading) {
+            btn.classList.add('downloading');
+            btn.innerHTML = `<svg class="spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm.75 3a.75.75 0 0 1-.75.75A4.25 4.25 0 0 0 3.75 8a.75.75 0 0 1-1.5 0A5.75 5.75 0 0 1 8 2.25.75.75 0 0 1 8.75 3Z"></path></svg>`;
+        } else {
+            btn.classList.remove('downloading');
+            btn.innerHTML = DOWNLOAD_ICON;
+        }
+    }
+
+    function triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    async function downloadFile(info) {
+        const rawUrl = `https://raw.githubusercontent.com/${info.owner}/${info.repo}/${info.branch}/${info.path}`;
+        const res = await gmFetch(rawUrl, { responseType: 'blob' });
+        const filename = info.path.split('/').pop();
+        triggerDownload(res.response, filename);
+    }
+
+    async function downloadDirectory(info) {
+        // Task 4 实现
+        alert('目录下载功能即将实现');
+    }
+
     /**
-     * 处理下载请求（占位函数，后续任务实现）
+     * 处理下载请求
      */
-    function handleDownload(info) {
-        console.log('Download requested:', info);
+    async function handleDownload(info) {
+        const btn = document.getElementById(BUTTON_ID);
+        if (!btn) return;
+
+        setButtonLoading(btn, true);
+
+        try {
+            if (info.type === 'blob') {
+                await downloadFile(info);
+            } else {
+                await downloadDirectory(info);
+            }
+        } catch (err) {
+            alert(`下载失败: ${err.message}`);
+        } finally {
+            setButtonLoading(btn, false);
+        }
     }
 
     /**
