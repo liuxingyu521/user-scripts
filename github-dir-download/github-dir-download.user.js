@@ -108,6 +108,63 @@
         if (btn) btn.remove();
     }
 
+    // ── Token 管理 ──────────────────────────────────────────────
+    const TOKEN_KEY = 'gh_download_token';
+
+    GM_registerMenuCommand('设置 GitHub Token', () => {
+        const current = GM_getValue(TOKEN_KEY, '');
+        const token = prompt(
+            'GitHub Personal Access Token (留空清除)\n未认证: 60次/小时 | 认证后: 5000次/小时',
+            current
+        );
+        if (token !== null) {
+            GM_setValue(TOKEN_KEY, token.trim());
+            alert(token.trim() ? 'Token 已保存' : 'Token 已清除');
+        }
+    });
+
+    function getAuthHeaders() {
+        const token = GM_getValue(TOKEN_KEY, '');
+        return token ? { Authorization: `token ${token}` } : {};
+    }
+
+    // ── GM_xmlhttpRequest Promise 封装 ──────────────────────────
+    function gmFetch(url, options = {}) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: options.method || 'GET',
+                url,
+                headers: { ...getAuthHeaders(), ...options.headers },
+                responseType: options.responseType || 'text',
+                onload(res) {
+                    if (res.status >= 200 && res.status < 300) {
+                        resolve(res);
+                    } else if (res.status === 403 && res.responseHeaders.includes('rate limit')) {
+                        reject(new Error('GitHub API 限流，请配置 Token（油猴菜单 → 设置 GitHub Token）'));
+                    } else {
+                        reject(new Error(`HTTP ${res.status}: ${url}`));
+                    }
+                },
+                onerror: () => reject(new Error(`请求失败: ${url}`)),
+            });
+        });
+    }
+
+    // ── 并发控制 ────────────────────────────────────────────────
+    async function parallelLimit(tasks, limit = 5) {
+        const results = [];
+        const executing = new Set();
+        for (const task of tasks) {
+            const p = task().then(r => { executing.delete(p); return r; });
+            executing.add(p);
+            results.push(p);
+            if (executing.size >= limit) {
+                await Promise.race(executing);
+            }
+        }
+        return Promise.all(results);
+    }
+
     /**
      * 处理下载请求（占位函数，后续任务实现）
      */
