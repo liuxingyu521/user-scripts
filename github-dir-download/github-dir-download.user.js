@@ -193,9 +193,59 @@
         triggerDownload(res.response, filename);
     }
 
+    async function fetchTree(owner, repo, branch, path) {
+        const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+        const res = await gmFetch(apiUrl);
+        const items = JSON.parse(res.responseText);
+        const files = [];
+
+        const dirs = [];
+        for (const item of items) {
+            if (item.type === 'file') {
+                files.push({ path: item.path, downloadUrl: item.download_url, size: item.size });
+            } else if (item.type === 'dir') {
+                dirs.push(item.path);
+            }
+        }
+
+        // 递归获取子目录
+        const subResults = await parallelLimit(
+            dirs.map(dir => () => fetchTree(owner, repo, branch, dir)),
+            3
+        );
+        for (const sub of subResults) {
+            files.push(...sub);
+        }
+
+        return files;
+    }
+
     async function downloadDirectory(info) {
-        // Task 4 实现
-        alert('目录下载功能即将实现');
+        const files = await fetchTree(info.owner, info.repo, info.branch, info.path);
+
+        if (files.length === 0) {
+            alert('目录为空');
+            return;
+        }
+
+        const zip = new JSZip();
+        const basePath = info.path || '';
+
+        await parallelLimit(
+            files.map(file => async () => {
+                const res = await gmFetch(file.downloadUrl, { responseType: 'blob' });
+                // 保留相对路径结构
+                const relativePath = basePath
+                    ? file.path.slice(basePath.length + 1)
+                    : file.path;
+                zip.file(relativePath, res.response);
+            }),
+            5
+        );
+
+        const blob = await zip.generateAsync({ type: 'blob' });
+        const dirName = info.path ? info.path.split('/').pop() : info.repo;
+        triggerDownload(blob, `${dirName}.zip`);
     }
 
     /**
