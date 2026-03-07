@@ -183,7 +183,7 @@
         document.body.appendChild(a);
         a.click();
         a.remove();
-        URL.revokeObjectURL(url);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
     async function downloadFile(info) {
@@ -202,6 +202,10 @@
         const dirs = [];
         for (const item of items) {
             if (item.type === 'file') {
+                if (!item.download_url) {
+                    console.warn(`跳过大文件 (download_url 为空): ${item.path}`);
+                    continue;
+                }
                 files.push({ path: item.path, downloadUrl: item.download_url, size: item.size });
             } else if (item.type === 'dir') {
                 dirs.push(item.path);
@@ -285,10 +289,14 @@
         }
 
         // 监听 DOM 变化，确保按钮在页面动态更新后仍然存在
+        let debounceTimer;
         new MutationObserver(() => {
-            if (!document.getElementById(BUTTON_ID) && parseGitHubURL()) {
-                injectButton();
-            }
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (!document.getElementById(BUTTON_ID) && parseGitHubURL()) {
+                    injectButton();
+                }
+            }, 200);
         }).observe(document.body, { childList: true, subtree: true });
     }
 
