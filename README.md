@@ -7,6 +7,7 @@
 | 脚本 | 描述 |
 |------|------|
 | [github-repo-insight](./github-repo-insight) | 在 GitHub 仓库页面添加 OSSInsight 分析按钮 |
+| [github-dir-download](./github-dir-download) | 在 GitHub 文件/目录页添加下载按钮，支持下载整个目录为 zip |
 
 ## 安装方法
 
@@ -25,9 +26,12 @@
 ```
 user-scripts/
 ├── README.md
-└── github-repo-insight/
+├── github-repo-insight/
+│   ├── README.md
+│   └── github-repo-insight.user.js
+└── github-dir-download/
     ├── README.md
-    └── github-repo-insight.user.js
+    └── github-dir-download.user.js
 ```
 
 ## License
