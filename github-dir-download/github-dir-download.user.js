@@ -144,21 +144,47 @@
     // ── GM_xmlhttpRequest Promise 封装 ──────────────────────────
     function gmFetch(url, options = {}) {
         return new Promise((resolve, reject) => {
+            const timeout = options.timeout || 30000;
+            let settled = false;
+
+            const timer = setTimeout(() => {
+                if (!settled) {
+                    settled = true;
+                    reject(new Error(`请求超时 (${timeout / 1000}s): ${url}`));
+                }
+            }, timeout);
+
+            function settle(fn, arg) {
+                if (!settled) {
+                    settled = true;
+                    clearTimeout(timer);
+                    fn(arg);
+                }
+            }
+
             GM_xmlhttpRequest({
                 method: options.method || 'GET',
                 url,
-                headers: { ...getAuthHeaders(), ...options.headers },
+                headers: { ...getAuthHeaders(), ...(options.headers || {}) },
                 responseType: options.responseType || 'text',
+                timeout,
                 onload(res) {
                     if (res.status >= 200 && res.status < 300) {
-                        resolve(res);
-                    } else if (res.status === 403 && res.responseHeaders.includes('rate limit')) {
-                        reject(new Error('GitHub API 限流，请配置 Token（油猴菜单 → 设置 GitHub Token）'));
+                        settle(resolve, res);
+                    } else if (res.status === 403) {
+                        const headers = res.responseHeaders || '';
+                        if (headers.includes('rate limit') || headers.includes('X-RateLimit')) {
+                            settle(reject, new Error('GitHub API 限流，请配置 Token（油猴菜单 → 设置 GitHub Token）'));
+                        } else {
+                            settle(reject, new Error(`HTTP ${res.status}: ${url}`));
+                        }
                     } else {
-                        reject(new Error(`HTTP ${res.status}: ${url}`));
+                        settle(reject, new Error(`HTTP ${res.status}: ${url}`));
                     }
                 },
-                onerror: () => reject(new Error(`请求失败: ${url}`)),
+                onerror: () => settle(reject, new Error(`请求失败: ${url}`)),
+                ontimeout: () => settle(reject, new Error(`请求超时: ${url}`)),
+                onabort: () => settle(reject, new Error(`请求取消: ${url}`)),
             });
         });
     }
@@ -209,8 +235,10 @@
 
     async function fetchTree(owner, repo, branch, path) {
         const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+        console.log('[GitHub Dir Download] 获取目录:', apiUrl);
         const res = await gmFetch(apiUrl);
         const items = JSON.parse(res.responseText);
+        console.log(`[GitHub Dir Download] 目录 ${path || '/'} 包含 ${items.length} 项`);
         const files = [];
 
         const dirs = [];
@@ -239,6 +267,7 @@
     }
 
     async function downloadDirectory(info) {
+        console.log('[GitHub Dir Download] 正在获取目录结构...');
         const files = await fetchTree(info.owner, info.repo, info.branch, info.path);
 
         if (files.length === 0) {
@@ -246,6 +275,7 @@
             return;
         }
 
+        console.log(`[GitHub Dir Download] 共 ${files.length} 个文件，开始下载...`);
         const zip = new JSZip();
         const basePath = info.path || '';
 
@@ -262,6 +292,7 @@
         );
 
         const blob = await zip.generateAsync({ type: 'blob' });
+        console.log('[GitHub Dir Download] 打包完成，触发下载');
         const dirName = info.path ? info.path.split('/').pop() : info.repo;
         triggerDownload(blob, `${dirName}.zip`);
     }
