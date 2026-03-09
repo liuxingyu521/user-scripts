@@ -40,7 +40,10 @@
             border-radius: 6px;
             color: var(--fgColor-muted, #656d76);
             vertical-align: middle;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, opacity 0.2s;
+            position: relative;
+            z-index: 1;
+            pointer-events: auto;
         }
         #${BUTTON_ID}:hover {
             background-color: var(--bgColor-neutral-muted, rgba(175,184,193,0.2));
@@ -48,10 +51,10 @@
         }
         #${BUTTON_ID}.downloading {
             pointer-events: none;
-            opacity: 0.6;
+            opacity: 0.5;
         }
-        #${BUTTON_ID} .spinner {
-            animation: gh-dl-spin 0.6s linear infinite;
+        #${BUTTON_ID}.downloading svg {
+            animation: gh-dl-spin 1s linear infinite;
         }
         @keyframes gh-dl-spin {
             from { transform: rotate(0deg); }
@@ -96,7 +99,17 @@
             ? `下载目录: ${info.path || info.repo}`
             : `下载文件: ${info.path.split('/').pop()}`;
         btn.innerHTML = DOWNLOAD_ICON;
-        btn.addEventListener('click', () => handleDownload(info));
+        if (isDownloading) {
+            btn.classList.add('downloading');
+        }
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDownload(info).catch(err => {
+                console.error('[GitHub Dir Download] 下载出错:', err);
+                alert(`下载失败: ${err.message}`);
+            });
+        });
         copyBtn.after(btn);
     }
 
@@ -165,13 +178,14 @@
         return Promise.all(results);
     }
 
-    function setButtonLoading(btn, loading) {
-        if (loading) {
-            btn.classList.add('downloading');
-            btn.innerHTML = `<svg class="spinner" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0Zm.75 3a.75.75 0 0 1-.75.75A4.25 4.25 0 0 0 3.75 8a.75.75 0 0 1-1.5 0A5.75 5.75 0 0 1 8 2.25.75.75 0 0 1 8.75 3Z"></path></svg>`;
-        } else {
-            btn.classList.remove('downloading');
-            btn.innerHTML = DOWNLOAD_ICON;
+    // 下载状态管理（独立于按钮 DOM，避免 innerHTML 修改触发 React 重渲染）
+    let isDownloading = false;
+
+    function setDownloading(loading) {
+        isDownloading = loading;
+        const btn = document.getElementById(BUTTON_ID);
+        if (btn) {
+            btn.classList.toggle('downloading', loading);
         }
     }
 
@@ -256,10 +270,10 @@
      * 处理下载请求
      */
     async function handleDownload(info) {
-        const btn = document.getElementById(BUTTON_ID);
-        if (!btn) return;
+        if (isDownloading) return;
 
-        setButtonLoading(btn, true);
+        console.log('[GitHub Dir Download] 开始下载:', info);
+        setDownloading(true);
 
         try {
             if (info.type === 'blob') {
@@ -267,10 +281,12 @@
             } else {
                 await downloadDirectory(info);
             }
+            console.log('[GitHub Dir Download] 下载完成');
         } catch (err) {
+            console.error('[GitHub Dir Download] 下载失败:', err);
             alert(`下载失败: ${err.message}`);
         } finally {
-            setButtonLoading(btn, false);
+            setDownloading(false);
         }
     }
 
