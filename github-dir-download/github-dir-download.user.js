@@ -194,7 +194,7 @@
         const results = [];
         const executing = new Set();
         for (const task of tasks) {
-            const p = task().then(r => { executing.delete(p); return r; });
+            const p = task().finally(() => executing.delete(p));
             executing.add(p);
             results.push(p);
             if (executing.size >= limit) {
@@ -228,9 +228,10 @@
 
     async function downloadFile(info) {
         const rawUrl = `https://raw.githubusercontent.com/${info.owner}/${info.repo}/${info.branch}/${info.path}`;
-        const res = await gmFetch(rawUrl, { responseType: 'blob' });
+        console.log('[GitHub Dir Download] 下载文件:', rawUrl);
+        const res = await gmFetch(rawUrl, { responseType: 'arraybuffer' });
         const filename = info.path.split('/').pop();
-        triggerDownload(res.response, filename);
+        triggerDownload(new Blob([res.response]), filename);
     }
 
     async function fetchTree(owner, repo, branch, path) {
@@ -278,18 +279,34 @@
         console.log(`[GitHub Dir Download] 共 ${files.length} 个文件，开始下载...`);
         const zip = new JSZip();
         const basePath = info.path || '';
+        let downloaded = 0;
+        let failed = 0;
 
         await parallelLimit(
             files.map(file => async () => {
-                const res = await gmFetch(file.downloadUrl, { responseType: 'blob' });
-                // 保留相对路径结构
-                const relativePath = basePath
-                    ? file.path.slice(basePath.length + 1)
-                    : file.path;
-                zip.file(relativePath, res.response);
+                try {
+                    const res = await gmFetch(file.downloadUrl, { responseType: 'arraybuffer' });
+                    const relativePath = basePath
+                        ? file.path.slice(basePath.length + 1)
+                        : file.path;
+                    zip.file(relativePath, res.response);
+                    downloaded++;
+                    console.log(`[GitHub Dir Download] (${downloaded + failed}/${files.length}) ✓ ${relativePath}`);
+                } catch (err) {
+                    failed++;
+                    console.warn(`[GitHub Dir Download] (${downloaded + failed}/${files.length}) ✗ ${file.path}: ${err.message}`);
+                }
             }),
             5
         );
+
+        if (downloaded === 0) {
+            alert('所有文件下载失败');
+            return;
+        }
+        if (failed > 0) {
+            console.warn(`[GitHub Dir Download] ${failed} 个文件下载失败，已跳过`);
+        }
 
         const blob = await zip.generateAsync({ type: 'blob' });
         console.log('[GitHub Dir Download] 打包完成，触发下载');
