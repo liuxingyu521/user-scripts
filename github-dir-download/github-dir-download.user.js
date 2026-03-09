@@ -228,7 +228,6 @@
 
     async function downloadFile(info) {
         const rawUrl = `https://raw.githubusercontent.com/${info.owner}/${info.repo}/${info.branch}/${info.path}`;
-        console.log('[GitHub Dir Download] 下载文件:', rawUrl);
         const res = await gmFetch(rawUrl, { responseType: 'arraybuffer' });
         const filename = info.path.split('/').pop();
         triggerDownload(new Blob([res.response]), filename);
@@ -236,10 +235,8 @@
 
     async function fetchTree(owner, repo, branch, path) {
         const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
-        console.log('[GitHub Dir Download] 获取目录:', apiUrl);
         const res = await gmFetch(apiUrl);
         const items = JSON.parse(res.responseText);
-        console.log(`[GitHub Dir Download] 目录 ${path || '/'} 包含 ${items.length} 项`);
         const files = [];
 
         const dirs = [];
@@ -268,7 +265,6 @@
     }
 
     async function downloadDirectory(info) {
-        console.log('[GitHub Dir Download] 正在获取目录结构...');
         const files = await fetchTree(info.owner, info.repo, info.branch, info.path);
 
         if (files.length === 0) {
@@ -276,7 +272,6 @@
             return;
         }
 
-        console.log(`[GitHub Dir Download] 共 ${files.length} 个文件，开始下载...`);
         const zipObj = {};
         const basePath = info.path || '';
         let downloaded = 0;
@@ -298,7 +293,6 @@
                     }
                     current[parts[parts.length - 1]] = new Uint8Array(res.response);
                     downloaded++;
-                    console.log(`[GitHub Dir Download] (${downloaded + failed}/${files.length}) ✓ ${relativePath}`);
                 } catch (err) {
                     failed++;
                     console.warn(`[GitHub Dir Download] (${downloaded + failed}/${files.length}) ✗ ${file.path}: ${err.message}`);
@@ -315,9 +309,7 @@
             console.warn(`[GitHub Dir Download] ${failed} 个文件下载失败，已跳过`);
         }
 
-        console.log(`[GitHub Dir Download] 下载完毕 (成功: ${downloaded}, 失败: ${failed})，开始打包 zip...`);
         const zipData = fflate.zipSync(zipObj);
-        console.log(`[GitHub Dir Download] 打包完成 (${(zipData.byteLength / 1024).toFixed(1)} KB)，触发下载`);
         const dirName = info.path ? info.path.split('/').pop() : info.repo;
         triggerDownload(new Blob([zipData]), `${dirName}.zip`);
     }
@@ -328,7 +320,6 @@
     async function handleDownload(info) {
         if (isDownloading) return;
 
-        console.log('[GitHub Dir Download] 开始下载:', info);
         setDownloading(true);
 
         try {
@@ -337,7 +328,6 @@
             } else {
                 await downloadDirectory(info);
             }
-            console.log('[GitHub Dir Download] 下载完成');
         } catch (err) {
             console.error('[GitHub Dir Download] 下载失败:', err);
             alert(`下载失败: ${err.message}`);

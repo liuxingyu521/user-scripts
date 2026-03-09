@@ -106,7 +106,6 @@ unicode: "ec20"
         }
 
         const repoInfo = getRepoInfo();
-        console.log('repoInfo', repoInfo)
         if (!repoInfo) {
             return;
         }
