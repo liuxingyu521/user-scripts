@@ -11,7 +11,7 @@
 
 ## 安装
 
-[点击安装](./github-dir-download.user.js)
+[点击安装](https://github.com/liuxingyu521/user-scripts/raw/refs/heads/main/github-dir-download/github-dir-download.user.js)
 
 或复制 `github-dir-download.user.js` 内容到 Tampermonkey。
 
