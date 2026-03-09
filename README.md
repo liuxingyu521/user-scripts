@@ -4,10 +4,10 @@
 
 ## 脚本列表
 
-| 脚本 | 描述 |
-|------|------|
-| [github-repo-insight](./github-repo-insight) | 在 GitHub 仓库页面添加 OSSInsight 分析按钮 |
-| [github-dir-download](./github-dir-download) | 在 GitHub 文件/目录页添加下载按钮，支持下载整个目录为 zip |
+| 脚本 | 描述 | 截图示例 |
+|------|------|---------|
+| [github-repo-insight](./github-repo-insight) | 在 GitHub 仓库页面添加 OSSInsight 分析按钮 | <img src="https://github.com/user-attachments/assets/e2c487ad-8f6b-4571-bec9-57fdc5dc324a" alt="脚本示意截图" width="300" /> |
+| [github-dir-download](./github-dir-download) | 在 GitHub 文件/目录页添加下载按钮，支持下载整个目录为 zip | <img src="https://github.com/user-attachments/assets/9962d1e9-9496-49de-b314-952061430308" alt="脚本示意截图" width="300" /> |
 
 ## 安装方法
 

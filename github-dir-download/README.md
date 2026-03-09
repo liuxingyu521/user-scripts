@@ -22,6 +22,10 @@
 - **文件页面**：点击按钮直接下载当前文件
 - **目录页面**：点击按钮将目录内所有文件打包为 zip 下载
 
+## 截图
+
+<img src="https://github.com/user-attachments/assets/9962d1e9-9496-49de-b314-952061430308" alt="脚本示意截图" width="50%" />
+
 ## Token 配置
 
 通过 Tampermonkey 菜单 → `设置 GitHub Token` 配置 Personal Access Token。
