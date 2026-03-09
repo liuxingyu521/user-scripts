@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         GitHub Dir Download
-// @namespace    https://github.com/user-scripts/
+// @namespace    https://github.com/liuxingyu521/user-scripts/
 // @version      1.0.0
 // @description  在 GitHub 文件/目录页添加下载按钮，支持下载单文件或整个目录（zip）
 // @author       xuer
