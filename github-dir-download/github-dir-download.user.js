@@ -6,7 +6,7 @@
 // @author       xuer
 // @match        https://github.com/*/*/tree/*
 // @match        https://github.com/*/*/blob/*
-// @require      https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js
+// @require      https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @grant        GM_getValue
@@ -277,7 +277,7 @@
         }
 
         console.log(`[GitHub Dir Download] 共 ${files.length} 个文件，开始下载...`);
-        const zip = new JSZip();
+        const zipObj = {};
         const basePath = info.path || '';
         let downloaded = 0;
         let failed = 0;
@@ -289,7 +289,14 @@
                     const relativePath = basePath
                         ? file.path.slice(basePath.length + 1)
                         : file.path;
-                    zip.file(relativePath, res.response);
+                    // fflate 需要嵌套对象表示目录: { dir: { file: Uint8Array } }
+                    const parts = relativePath.split('/');
+                    let current = zipObj;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        if (!current[parts[i]]) current[parts[i]] = {};
+                        current = current[parts[i]];
+                    }
+                    current[parts[parts.length - 1]] = new Uint8Array(res.response);
                     downloaded++;
                     console.log(`[GitHub Dir Download] (${downloaded + failed}/${files.length}) ✓ ${relativePath}`);
                 } catch (err) {
@@ -309,7 +316,7 @@
         }
 
         console.log(`[GitHub Dir Download] 下载完毕 (成功: ${downloaded}, 失败: ${failed})，开始打包 zip...`);
-        const zipData = await zip.generateAsync({ type: 'uint8array' });
+        const zipData = fflate.zipSync(zipObj);
         console.log(`[GitHub Dir Download] 打包完成 (${(zipData.byteLength / 1024).toFixed(1)} KB)，触发下载`);
         const dirName = info.path ? info.path.split('/').pop() : info.repo;
         triggerDownload(new Blob([zipData]), `${dirName}.zip`);
