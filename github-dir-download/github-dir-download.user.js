@@ -308,10 +308,11 @@
             console.warn(`[GitHub Dir Download] ${failed} 个文件下载失败，已跳过`);
         }
 
-        const blob = await zip.generateAsync({ type: 'blob' });
-        console.log('[GitHub Dir Download] 打包完成，触发下载');
+        console.log(`[GitHub Dir Download] 下载完毕 (成功: ${downloaded}, 失败: ${failed})，开始打包 zip...`);
+        const zipData = await zip.generateAsync({ type: 'uint8array' });
+        console.log(`[GitHub Dir Download] 打包完成 (${(zipData.byteLength / 1024).toFixed(1)} KB)，触发下载`);
         const dirName = info.path ? info.path.split('/').pop() : info.repo;
-        triggerDownload(blob, `${dirName}.zip`);
+        triggerDownload(new Blob([zipData]), `${dirName}.zip`);
     }
 
     /**
